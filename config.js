@@ -21,11 +21,6 @@ const config = {
 	// AABA__HelloWorld.md
 	// AACA__Bye.md
 	SORT_PREFIX: "__",
-
-	// Suffix that separates the slug from the language modifier. It will be also be deleted fropm the title.
-	// AABA_HelloWorld.md    => Default Language
-	// AABA_HelloWorld-spa.md    => Spanish Language
-	LANGUAGE_SUFFIX: "-",
 };
 
 module.exports.config = config;

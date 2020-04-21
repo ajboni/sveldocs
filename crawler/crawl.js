@@ -1,7 +1,7 @@
 const chokidar = require("chokidar");
 const chalk = require("chalk");
 const { config } = require("../config");
-const { slugify } = require("./slugify");
+const { slugify, extractLanguageFromSlug } = require("./slugify");
 const fs = require("fs-extra");
 const { htmlfy, writeFile, cleanFolder } = require("./htmlfy");
 const columnify = require("columnify");
@@ -30,6 +30,9 @@ function processDocuments(path, verbose = false) {
 	// Parse file and convert to html.
 	const content = htmlfy(path);
 
+	// Get the language
+	const lang = extractLanguageFromSlug(slug)
+
 	// Create files in public folder
 	const file = writeFile(
 		content,
@@ -46,6 +49,7 @@ function processDocuments(path, verbose = false) {
 			srcPath: path,
 			dstPath: file,
 			slug: slug,
+			language: lang,
 		};
 		docs.push(result);
 		if (verbose) {
