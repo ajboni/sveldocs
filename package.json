@@ -12,16 +12,16 @@
   "license": "ISC",
   "dependencies": {
     "columnify": "^1.5.4",
-    "concurrently": "^5.1.0",
-    "svelte": "^3.20.1",
-    "uikit": "^3.4.0"
+    "concurrently": "^5.2.0",
+    "svelte": "^3.22.2",
+    "uikit": "^3.4.3"
   },
   "devDependencies": {
     "chalk": "^4.0.0",
-    "chokidar": "^3.3.1",
+    "chokidar": "^3.4.0",
     "fs-extra": "^9.0.0",
     "markdown-it": "^10.0.0",
-    "svelvet": "^0.4.1"
+    "svelvet": "^0.4.2"
   },
   "description": "",
   "snowpack": {

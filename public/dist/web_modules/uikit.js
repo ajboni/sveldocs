@@ -1,7 +1,7 @@
 import { c as createCommonjsModule, a as commonjsGlobal } from './common/_commonjsHelpers-f5462f22.js';
 
 var uikit = createCommonjsModule(function (module, exports) {
-/*! UIkit 3.4.0 | https://www.getuikit.com | (c) 2014 - 2020 YOOtheme | MIT License */
+/*! UIkit 3.4.3 | https://www.getuikit.com | (c) 2014 - 2020 YOOtheme | MIT License */
 
 (function (global, factory) {
      module.exports = factory() ;
@@ -56,7 +56,7 @@ var uikit = createCommonjsModule(function (module, exports) {
 
     var arrPrototype = Array.prototype;
 
-    var includesFn = function (search, i) { return ~this.indexOf(search, i); };
+    var includesFn = function (search, i) { return !!~this.indexOf(search, i); };
     var includesStr = strPrototype.includes || includesFn;
     var includesArray = arrPrototype.includes || includesFn;
 
@@ -230,9 +230,10 @@ var uikit = createCommonjsModule(function (module, exports) {
     }
 
     function swap(value, a, b) {
-        return value.replace(new RegExp((a + "|" + b), 'mg'), function (match) {
-            return match === a ? b : a;
-        });
+        return value.replace(
+            new RegExp((a + "|" + b), 'g'),
+            function (match) { return match === a ? b : a; }
+        );
     }
 
     var assign = Object.assign || function (target) {
@@ -3171,10 +3172,15 @@ var uikit = createCommonjsModule(function (module, exports) {
 
             attrs = isArray(attrs) ? attrs : Object.keys(props);
 
-            this._observer = new MutationObserver(function () {
-
+            this._observer = new MutationObserver(function (records) {
                 var data = getProps(this$1.$options, this$1.$name);
-                if (attrs.some(function (key) { return !isUndefined(data[key]) && data[key] !== this$1.$props[key]; })) {
+                if (records.some(function (ref) {
+                    var attributeName = ref.attributeName;
+
+                    var prop = attributeName.replace('data-', '');
+                    return (prop === this$1.$name ? attrs : [camelize(prop)]).some(function (prop) { return !isUndefined(data[prop]) && data[prop] !== this$1.$props[prop]; }
+                    );
+                })) {
                     this$1.$reset();
                 }
 
@@ -3203,18 +3209,19 @@ var uikit = createCommonjsModule(function (module, exports) {
                 var prop = hyphenate(key);
                 var value = data(el, prop);
 
-                if (!isUndefined(value)) {
-
-                    value = props[key] === Boolean && value === ''
-                        ? true
-                        : coerce(props[key], value);
-
-                    if (prop === 'target' && (!value || startsWith(value, '_'))) {
-                        continue;
-                    }
-
-                    data$1[key] = value;
+                if (isUndefined(value)) {
+                    continue;
                 }
+
+                value = props[key] === Boolean && value === ''
+                    ? true
+                    : coerce(props[key], value);
+
+                if (prop === 'target' && (!value || startsWith(value, '_'))) {
+                    continue;
+                }
+
+                data$1[key] = value;
             }
 
             var options = parseOptions(data(el, name), args);
@@ -3565,7 +3572,7 @@ var uikit = createCommonjsModule(function (module, exports) {
     UIkit.data = '__uikit__';
     UIkit.prefix = 'uk-';
     UIkit.options = {};
-    UIkit.version = '3.4.0';
+    UIkit.version = '3.4.3';
 
     globalAPI(UIkit);
     hooksAPI(UIkit);
@@ -4638,6 +4645,13 @@ var uikit = createCommonjsModule(function (module, exports) {
                     }
                     ), {self: true});
 
+                    once(this.$el, 'hide', on(document, 'keydown', function (e) {
+                        if (e.keyCode === 27) {
+                            e.preventDefault();
+                            this$1.hide(false);
+                        }
+                    }), {self: true});
+
                 }
 
             },
@@ -4909,7 +4923,7 @@ var uikit = createCommonjsModule(function (module, exports) {
             },
 
             write: function() {
-                this.$el.src = this.$el.src;
+                this.$el.src = this.$el.src; // eslint-disable-line no-self-assign
             },
 
             events: ['scroll', 'resize']
@@ -4932,20 +4946,22 @@ var uikit = createCommonjsModule(function (module, exports) {
         update: {
 
             read: function() {
-                return {rows: getRows(this.$el.children)};
+                return {
+                    columns: getColumns(this.$el.children),
+                    rows: getRows(this.$el.children)
+                };
             },
 
             write: function(ref) {
                 var this$1 = this;
+                var columns = ref.columns;
                 var rows = ref.rows;
 
-
-                rows.forEach(function (row, i) { return row.forEach(function (el, j) {
+                rows.forEach(function (row, i) { return row.forEach(function (el) {
                         toggleClass(el, this$1.margin, i !== 0);
-                        toggleClass(el, this$1.firstColumn, j === 0);
+                        toggleClass(el, this$1.firstColumn, includes(columns[0], el));
                     }); }
                 );
-
             },
 
             events: ['resize']
@@ -4955,8 +4971,19 @@ var uikit = createCommonjsModule(function (module, exports) {
     };
 
     function getRows(items) {
+        return sortBy$1(items, 'top', 'bottom');
+    }
 
-        var rows = [[]];
+    function getColumns(items) {
+        var columns = sortBy$1(items, 'left', 'right');
+        return isRtl
+            ? columns.reverse()
+            : columns;
+    }
+
+    function sortBy$1(items, startProp, endProp) {
+
+        var sorted = [[]];
 
         for (var i = 0; i < items.length; i++) {
 
@@ -4968,41 +4995,35 @@ var uikit = createCommonjsModule(function (module, exports) {
 
             var dim = getOffset(el);
 
-            for (var j = rows.length - 1; j >= 0; j--) {
+            for (var j = sorted.length - 1; j >= 0; j--) {
 
-                var row = rows[j];
+                var current = sorted[j];
 
-                if (!row[0]) {
-                    row.push(el);
+                if (!current[0]) {
+                    current.push(el);
                     break;
                 }
 
-                var leftDim = (void 0);
-                if (row[0].offsetParent === el.offsetParent) {
-                    leftDim = getOffset(row[0]);
+                var startDim = (void 0);
+                if (current[0].offsetParent === el.offsetParent) {
+                    startDim = getOffset(current[0]);
                 } else {
                     dim = getOffset(el, true);
-                    leftDim = getOffset(row[0], true);
+                    startDim = getOffset(current[0], true);
                 }
 
-                if (dim.top >= leftDim.bottom - 1 && dim.top !== leftDim.top) {
-                    rows.push([el]);
+                if (dim[startProp] >= startDim[endProp] - 1 && dim[startProp] !== startDim[startProp]) {
+                    sorted.push([el]);
                     break;
                 }
 
-                if (dim.bottom > leftDim.top || dim.top === leftDim.top) {
-
-                    if (dim.left < leftDim.left && !isRtl) {
-                        row.unshift(el);
-                        break;
-                    }
-
-                    row.push(el);
+                if (dim[endProp] > startDim[startProp] || dim[startProp] === startDim[startProp]) {
+                    current.push(el);
                     break;
                 }
 
                 if (j === 0) {
-                    rows.unshift([el]);
+                    sorted.unshift([el]);
                     break;
                 }
 
@@ -5010,8 +5031,7 @@ var uikit = createCommonjsModule(function (module, exports) {
 
         }
 
-        return rows;
-
+        return sorted;
     }
 
     function getOffset(element, offset) {
@@ -5022,6 +5042,7 @@ var uikit = createCommonjsModule(function (module, exports) {
         var offsetTop = element.offsetTop;
         var offsetLeft = element.offsetLeft;
         var offsetHeight = element.offsetHeight;
+        var offsetWidth = element.offsetWidth;
 
         if (offset) {
             (assign = offsetPosition(element), offsetTop = assign[0], offsetLeft = assign[1]);
@@ -5030,8 +5051,8 @@ var uikit = createCommonjsModule(function (module, exports) {
         return {
             top: offsetTop,
             left: offsetLeft,
-            height: offsetHeight,
-            bottom: offsetTop + offsetHeight
+            bottom: offsetTop + offsetHeight,
+            right: offsetLeft + offsetWidth
         };
     }
 
@@ -5055,20 +5076,6 @@ var uikit = createCommonjsModule(function (module, exports) {
             parallax: 0
         },
 
-        computed: {
-
-            length: function(_, $el) {
-                return $el.children.length;
-            },
-
-            parallax: function(ref) {
-                var parallax = ref.parallax;
-
-                return parallax && this.length ? Math.abs(parallax) : '';
-            }
-
-        },
-
         connected: function() {
             this.masonry && addClass(this.$el, 'uk-flex-top uk-flex-wrap-top');
         },
@@ -5077,16 +5084,10 @@ var uikit = createCommonjsModule(function (module, exports) {
 
             {
 
-                read: function(ref) {
-                    var rows = ref.rows;
-
-                    return {stacks: !rows.some(function (row) { return row.length > 1; })};
-                },
-
                 write: function(ref) {
-                    var stacks = ref.stacks;
+                    var columns = ref.columns;
 
-                    toggleClass(this.$el, this.clsStack, stacks);
+                    toggleClass(this.$el, this.clsStack, columns.length < 2);
                 },
 
                 events: ['resize']
@@ -5096,43 +5097,39 @@ var uikit = createCommonjsModule(function (module, exports) {
             {
 
                 read: function(ref) {
+                    var columns = ref.columns;
                     var rows = ref.rows;
 
 
-                    if (!this.masonry && !this.parallax) {
+                    var nodes = children(this.$el);
+
+                    if (!nodes.length || !this.masonry && !this.parallax) {
                         return false;
                     }
 
-                    rows = rows.map(function (elements) { return sortBy(elements, 'offsetLeft'); });
-
-                    if (isRtl) {
-                        rows.map(function (row) { return row.reverse(); });
-                    }
-
-                    var transitionInProgress = rows.some(function (elements) { return elements.some(Transition.inProgress); });
+                    var transitionInProgress = nodes.some(Transition.inProgress);
                     var translates = false;
                     var elHeight = '';
+                    var padding = Math.abs(this.parallax);
 
-                    if (this.masonry && this.length) {
+                    if (this.masonry) {
 
-                        var height = 0;
+                        columns = columns.map(function (column) { return sortBy(column, 'offsetTop'); });
 
-                        translates = rows.reduce(function (translates, row, i) {
+                        var columnHeights = getColumnHeights(columns);
+                        var margin = getMarginTop(nodes, this.margin) * (rows.length - 1);
 
-                            translates[i] = row.map(function (_, j) { return i === 0 ? 0 : toFloat(translates[i - 1][j]) + (height - toFloat(rows[i - 1][j] && rows[i - 1][j].offsetHeight)); });
-                            height = row.reduce(function (height, el) { return Math.max(height, el.offsetHeight); }, 0);
+                        translates = getTranslates(rows, columns);
+                        elHeight = Math.max.apply(Math, columnHeights) + margin;
 
-                            return translates;
-
-                        }, []);
-
-                        elHeight = maxColumnHeight(rows) + getMarginTop(this.$el, this.margin) * (rows.length - 1);
+                        if (padding) {
+                            padding = columnHeights.reduce(function (newPadding, hgt, i) { return Math.max(newPadding, hgt + margin + (i % 2 ? padding : padding / 8) - elHeight); }
+                            , 0);
+                        }
 
                     }
 
-                    var padding = this.parallax && getPaddingBottom(this.parallax, rows, translates);
-
-                    return {padding: padding, rows: rows, translates: translates, height: !transitionInProgress ? elHeight : false};
+                    return {padding: padding, columns: columns, translates: translates, height: !transitionInProgress ? elHeight : false};
 
                 },
 
@@ -5157,13 +5154,13 @@ var uikit = createCommonjsModule(function (module, exports) {
 
                     return {
                         scrolled: this.parallax
-                            ? scrolledOver(this.$el, height$1 ? height$1 - height(this.$el) : 0) * this.parallax
+                            ? scrolledOver(this.$el, height$1 ? height$1 - height(this.$el) : 0) * Math.abs(this.parallax)
                             : false
                     };
                 },
 
                 write: function(ref) {
-                    var rows = ref.rows;
+                    var columns = ref.columns;
                     var scrolled = ref.scrolled;
                     var translates = ref.translates;
 
@@ -5172,7 +5169,7 @@ var uikit = createCommonjsModule(function (module, exports) {
                         return;
                     }
 
-                    rows.forEach(function (row, i) { return row.forEach(function (el, j) { return css(el, 'transform', !scrolled && !translates ? '' : ("translateY(" + ((translates && -translates[i][j]) + (scrolled ? j % 2 ? scrolled : scrolled / 8 : 0)) + "px)")); }
+                    columns.forEach(function (column, i) { return column.forEach(function (el, j) { return css(el, 'transform', !scrolled && !translates ? '' : ("translateY(" + ((translates && -translates[i][j]) + (scrolled ? i % 2 ? scrolled : scrolled / 8 : 0)) + "px)")); }
                         ); }
                     );
 
@@ -5186,25 +5183,28 @@ var uikit = createCommonjsModule(function (module, exports) {
 
     };
 
-    function getPaddingBottom(distance, rows, translates) {
-        var column = 0;
-        var max = 0;
-        var maxScrolled = 0;
-        for (var i = rows.length - 1; i >= 0; i--) {
-            for (var j = column; j < rows[i].length; j++) {
-                var el = rows[i][j];
-                var bottom = el.offsetTop + height(el) + (translates && -translates[i][j]);
-                max = Math.max(max, bottom);
-                maxScrolled = Math.max(maxScrolled, bottom + (j % 2 ? distance : distance / 8));
-                column++;
-            }
-        }
-        return maxScrolled - max;
+    function getTranslates(rows, columns) {
+
+        var translates = [];
+        var rowHeights = rows.map(function (row) { return Math.max.apply(Math, row.map(function (el) { return el.offsetHeight; })); }
+        );
+
+        columns.forEach(function (column, i) { return column.forEach(function (el, j) {
+                if (j === 0) {
+                    translates[i] = [0];
+                } else {
+                    translates[i][j] = rowHeights[j - 1]
+                        - columns[i][j - 1].offsetHeight
+                        + translates[i].reduce(function (sum, op) { return sum + op; }, 0);
+                }
+            }); }
+        );
+
+        return translates;
     }
 
-    function getMarginTop(root, cls) {
+    function getMarginTop(nodes, cls) {
 
-        var nodes = children(root);
         var ref = nodes.filter(function (el) { return hasClass(el, cls); });
         var node = ref[0];
 
@@ -5213,11 +5213,9 @@ var uikit = createCommonjsModule(function (module, exports) {
             : css(nodes[0], 'paddingLeft'));
     }
 
-    function maxColumnHeight(rows) {
-        return Math.max.apply(Math, rows.reduce(function (sum, row) {
-            row.forEach(function (el, i) { return sum[i] = (sum[i] || 0) + el.offsetHeight; });
-            return sum;
-        }, []));
+    function getColumnHeights(columns) {
+        return columns.map(function (column) { return column.reduce(function (sum, el) { return sum + el.offsetHeight; }, 0); }
+        );
     }
 
     // IE 11 fix (min-height on a flex container won't apply to its flex items)
@@ -5497,19 +5495,16 @@ var uikit = createCommonjsModule(function (module, exports) {
         },
 
         beforeConnect: function() {
+            this.class += ' uk-svg';
+        },
+
+        connected: function() {
             var this$1 = this;
             var assign;
 
 
-            this.class += ' uk-svg';
-
             if (!this.icon && includes(this.src, '#')) {
-
-                var parts = this.src.split('#');
-
-                if (parts.length > 1) {
-                    (assign = parts, this.src = assign[0], this.icon = assign[1]);
-                }
+                (assign = this.src.split('#'), this.src = assign[0], this.icon = assign[1]);
             }
 
             this.svg = this.getSvg().then(function (el) {
@@ -5743,7 +5738,6 @@ var uikit = createCommonjsModule(function (module, exports) {
 
     var totop = "<svg width=\"18\" height=\"10\" viewBox=\"0 0 18 10\" xmlns=\"http://www.w3.org/2000/svg\"><polyline fill=\"none\" stroke=\"#000\" stroke-width=\"1.2\" points=\"1 9 9 1 17 9 \"/></svg>";
 
-    var parsed = {};
     var icons = {
         spinner: spinner,
         totop: totop,
@@ -5787,7 +5781,7 @@ var uikit = createCommonjsModule(function (module, exports) {
 
             getSvg: function() {
 
-                var icon = getIcon(applyRtl(this.icon));
+                var icon = getIcon(this.icon);
 
                 if (!icon) {
                     return Promise.reject('Icon not found.');
@@ -5884,6 +5878,7 @@ var uikit = createCommonjsModule(function (module, exports) {
 
     };
 
+    var parsed = {};
     function install(UIkit) {
         UIkit.icon.add = function (name, svg) {
             var obj;
@@ -5911,7 +5906,7 @@ var uikit = createCommonjsModule(function (module, exports) {
         }
 
         if (!parsed[icon]) {
-            parsed[icon] = $(icons[icon].trim());
+            parsed[icon] = $((icons[applyRtl(icon)] || icons[icon]).trim());
         }
 
         return parsed[icon].cloneNode(true);
@@ -6777,7 +6772,6 @@ var uikit = createCommonjsModule(function (module, exports) {
 
                 watch: function(dropbar) {
                     addClass(dropbar, 'uk-navbar-dropbar');
-                    toggleClass(dropbar, 'uk-navbar-dropbar-slide', this.dropbarMode === 'slide');
                 },
 
                 immediate: true
@@ -6881,6 +6875,8 @@ var uikit = createCommonjsModule(function (module, exports) {
 
                     var $el = drop.$el;
                     var dir = drop.dir;
+
+                    toggleClass(this.dropbar, 'uk-navbar-dropbar-slide', this.dropbarMode === 'slide' || parents(this.$el).some(function (el) { return css(el, 'position') !== 'static'; }));
 
                     this.clsDrop && addClass($el, ((this.clsDrop) + "-dropbar"));
 
@@ -7444,7 +7440,7 @@ var uikit = createCommonjsModule(function (module, exports) {
 
                     // Let child components be applied at least once first
                     if (!data.update) {
-                        this.$update();
+                        this.$emit();
                         return data.update = true;
                     }
 
@@ -7745,11 +7741,9 @@ var uikit = createCommonjsModule(function (module, exports) {
 
 
                     if (this.isActive && type !== 'update') {
-
                         this.hide();
                         height = this.$el.offsetHeight;
                         this.show();
-
                     }
 
                     height = !this.isActive ? this.$el.offsetHeight : height;
@@ -7760,7 +7754,7 @@ var uikit = createCommonjsModule(function (module, exports) {
                     var bottom = parseProp('bottom', this);
 
                     this.top = Math.max(toFloat(parseProp('top', this)), this.topOffset) - this.offset;
-                    this.bottom = bottom && bottom - height;
+                    this.bottom = bottom && bottom - this.$el.offsetHeight;
                     this.inactive = !this.matchMedia;
 
                     return {
@@ -7786,7 +7780,7 @@ var uikit = createCommonjsModule(function (module, exports) {
                     }
 
                     // ensure active/inactive classes are applied
-                    this.isActive = this.isActive;
+                    this.isActive = this.isActive; // eslint-disable-line no-self-assign
 
                 },
 
@@ -7800,7 +7794,7 @@ var uikit = createCommonjsModule(function (module, exports) {
                     var scroll = ref.scroll; if ( scroll === void 0 ) scroll = 0;
 
 
-                    this.width = (isVisible(this.widthElement) ? this.widthElement : this.$el).offsetWidth;
+                    this.width = offset(isVisible(this.widthElement) ? this.widthElement : this.$el).width;
 
                     this.scroll = window.pageYOffset;
 
@@ -7838,7 +7832,7 @@ var uikit = createCommonjsModule(function (module, exports) {
 
                     data.lastDir = dir;
 
-                    if (this.showOnUp && Math.abs(data.initScroll - scroll) <= 30 && Math.abs(lastScroll - scroll) <= 10) {
+                    if (this.showOnUp && !this.isFixed && Math.abs(data.initScroll - scroll) <= 30 && Math.abs(lastScroll - scroll) <= 10) {
                         return;
                     }
 
@@ -7912,7 +7906,7 @@ var uikit = createCommonjsModule(function (module, exports) {
                 var active = this.top !== 0 || this.scroll > this.top;
                 var top = Math.max(0, this.offset);
 
-                if (this.bottom && this.scroll > this.bottom - this.offset) {
+                if (isNumeric(this.bottom) && this.scroll > this.bottom - this.offset) {
                     top = this.bottom - this.scroll;
                 }
 
@@ -7944,7 +7938,7 @@ var uikit = createCommonjsModule(function (module, exports) {
             return;
         }
 
-        if (isNumeric(value) && isString(value) && value.match(/^-?\d/)) {
+        if (isString(value) && value.match(/^-?\d/)) {
 
             return propOffset + toPx(value);
 
@@ -9603,8 +9597,9 @@ var uikit = createCommonjsModule(function (module, exports) {
                 this.prevIndex = prevIndex;
                 this.index = nextIndex;
 
-                prev && trigger(prev, 'beforeitemhide', [this]);
-                if (!trigger(next, 'beforeitemshow', [this, prev])) {
+                if (prev && !trigger(prev, 'beforeitemhide', [this])
+                    || !trigger(next, 'beforeitemshow', [this, prev])
+                ) {
                     this.index = this.prevIndex;
                     reset();
                     return;
@@ -9742,7 +9737,7 @@ var uikit = createCommonjsModule(function (module, exports) {
                 var animation = ref.animation;
                 var Animations = ref.Animations;
 
-                return assign(animation in Animations ? Animations[animation] : Animations.slide, {name: animation});
+                return assign(Animations[animation] || Animations.slide, {name: animation});
             },
 
             transitionOptions: function() {
@@ -10051,7 +10046,7 @@ var uikit = createCommonjsModule(function (module, exports) {
                         this.setItem(item, createEl('iframe', assign({
                             src: ("https://www.youtube" + (matches[1] || '') + ".com/embed/" + (matches[2]) + (matches[3] ? ("?" + (matches[3])) : '')),
                             width: 1920,
-                            height: 1080,
+                            height: 1080
                         }, iframeAttrs, attrs)));
 
                     // Vimeo
@@ -11133,8 +11128,13 @@ var uikit = createCommonjsModule(function (module, exports) {
                 });
 
                 if (this.length && !this.dragging && !this.stack.length) {
+                    this.reorder();
                     this._translate(1);
                 }
+
+                var actives = this._getTransitioner(this.index).getActives();
+                this.slides.forEach(function (slide) { return toggleClass(slide, this$1.clsActive, includes(actives, slide)); });
+                (!this.sets || includes(this.sets, toFloat(this.index))) && this.slides.forEach(function (slide) { return toggleClass(slide, this$1.clsActivated, includes(actives, slide)); });
 
             },
 
@@ -11178,15 +11178,7 @@ var uikit = createCommonjsModule(function (module, exports) {
             },
 
             itemshow: function() {
-                !isUndefined(this.prevIndex) && addClass(this._getTransitioner().getItemIn(), this.clsActive);
-            },
-
-            itemshown: function() {
-                var this$1 = this;
-
-                var actives = this._getTransitioner(this.index).getActives();
-                this.slides.forEach(function (slide) { return toggleClass(slide, this$1.clsActive, includes(actives, slide)); });
-                (!this.sets || includes(this.sets, toFloat(this.index))) && this.slides.forEach(function (slide) { return toggleClass(slide, this$1.clsActivated, includes(actives, slide)); });
+                ~this.prevIndex && addClass(this._getTransitioner().getItemIn(), this.clsActive);
             }
 
         },
@@ -11197,9 +11189,8 @@ var uikit = createCommonjsModule(function (module, exports) {
                 var this$1 = this;
 
 
-                css(this.slides, 'order', '');
-
                 if (this.finite) {
+                    css(this.slides, 'order', '');
                     return;
                 }
 
@@ -11996,7 +11987,6 @@ var uikit = createCommonjsModule(function (module, exports) {
                     actives.splice(actives.indexOf(this$1), 1);
 
                     clearTimeout(this$1.showTimer);
-                    clearInterval(this$1.hideTimer);
 
                     this$1.tooltip = remove(this$1.tooltip);
                     this$1._unbind();
@@ -12029,8 +12019,6 @@ var uikit = createCommonjsModule(function (module, exports) {
                 });
 
                 this.toggleElement(this.tooltip, true);
-
-                this.hideTimer = setInterval(function () { return !isVisible(this$1.$el) && this$1.hide(); }, 150);
 
             },
 
