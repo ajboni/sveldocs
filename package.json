@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm:crawl\" \"npm:build-dev\"",
+    "dev": "npm run clean && concurrently \"npm:crawl\" \"npm:build-dev\"",
     "crawl": "node crawler/crawl.js",
-    "build-dev": "rm -rf public/dist && rollup -c -w",
-    "build": "rm -rf public/dist && rollup -c",
-    "dist": "NODE_ENV=production svelvet"
+    "build-dev": "rollup -c -w",
+    "build": "rollup -c",
+    "dist": "NODE_ENV=production svelvet",
+    "clean": "rm -rf public/dist && rm -rf public/docs "
   },
   "author": "",
   "license": "ISC",
@@ -26,6 +27,9 @@
     "chokidar": "^3.4.0",
     "fs-extra": "^9.0.0",
     "markdown-it": "^10.0.0",
+    "markdown-it-anchor": "^5.2.7",
+    "markdown-it-emoji": "^1.4.0",
+    "markdown-it-mark": "^3.0.0",
     "rollup-plugin-postcss": "^3.1.1",
     "rollup-plugin-serve": "^1.0.1",
     "rollup-plugin-svelte": "^5.2.1",

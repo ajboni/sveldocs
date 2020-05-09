@@ -8,12 +8,13 @@
   import Error404 from "./404.svelte";
   import Loading from "./loading.svelte";
 
-  let doc, lang, slug, fullpath, loading, error;
+  let doc, lang, slug, fullpath, loading, error, hash;
 
-  // Use reactive to get param changes on the url. (back button, or enter on teh url bar)
+  // Use reactive to get param changes on the url. (back button, or enter on the url bar)
   $: if (params) {
     lang = params.lang;
-    slug = params.wild;
+    slug = params.wild.split("#")[0];
+    hash = params.wild.split("#")[1];
     fullpath = config.DIST_DOCS_FOLDER + "/" + lang + "/" + slug + ".html";
     fetchDocument();
   }
