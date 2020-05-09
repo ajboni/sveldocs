@@ -42,5 +42,13 @@ function extractLanguageFromSlug(slug) {
   return slug.split("/")[0];
 }
 
+/* From a given slug, extract the folder hierarchy (ignoring language section) */
+function extractFoldersFromSlug(slug) {
+  const arr = slug.split("/");
+  const folders = arr.slice(1, arr.length - 1).join("/");
+  return folders;
+}
+
 module.exports.slugify = slugify;
 module.exports.extractLanguageFromSlug = extractLanguageFromSlug;
+module.exports.extractFoldersFromSlug = extractFoldersFromSlug;
