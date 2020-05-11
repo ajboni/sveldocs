@@ -6,10 +6,16 @@ const MarkdownIt = require("markdown-it"),
 const emoji = require("markdown-it-emoji");
 const mark = require("markdown-it-mark");
 const anchor = require("markdown-it-anchor");
+const matter = require("gray-matter");
 
 function htmlfy(path, slug) {
   const content = fs.readFileSync(path, "utf8");
-  const result = parseContent(content, path.replace(/\.[^/.]+$/, ""));
+  const result = matter(content);
+  if (!result.data.title) {
+    result.data.title = slug.split("/").pop();
+  }
+
+  result.content = parseContent(content, path.replace(/\.[^/.]+$/, ""));
   return result;
 }
 

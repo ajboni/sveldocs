@@ -11,14 +11,13 @@ const { htmlfy, writeFile, cleanFolder } = require("./htmlfy");
 const columnify = require("columnify");
 const set = require("set-value");
 var Path = require("path");
+const { sitemap, addToSitemap } = require("./sitemap");
 const error = chalk.bold.red;
 const warning = chalk.bold.yellow;
 const success = chalk.bold.green;
-var unflatten = require("flat").unflatten;
 const log = console.log;
 const slugs = new Map();
 const docs = [];
-const sitemap = {};
 
 // Delete dst folder contents
 fs.emptyDirSync(Path.join("public", config.DIST_DOCS_FOLDER));
@@ -34,7 +33,7 @@ function processDocuments(path, verbose = false) {
   const slug = slugify(path, config.SRC_DOCS_FOLDER);
 
   // Parse file and convert to html.
-  const content = htmlfy(path, slug);
+  const parsedDocument = htmlfy(path, slug);
 
   // Get the language
   const lang = extractLanguageFromSlug(slug);
@@ -43,32 +42,28 @@ function processDocuments(path, verbose = false) {
   const dstPath = Path.join(config.DIST_DOCS_FOLDER, slug);
 
   // Create files in public folder
-  const file = writeFile(content, dstPath, ".html");
-
-  const folders = extractFoldersFromSlug(slug);
-
-  // Add To Sitemap
-  const obj = {};
-  const dottedSlug = slug.split("/").join(".");
-  set(sitemap, dottedSlug, { type: "folder" });
+  const file = writeFile(parsedDocument.content, dstPath, ".html");
 
   // Fill slugs map with slug => htmlFile info
   if (!slug || !file) {
     log(`${error(path + " => ERROR")}`);
   } else {
-    const result = {
-      srcPath: path,
-      dstPath: dstPath,
-      slug: slug,
-      language: lang,
+    const properties = {
       dstFile: file,
-      folders: folders,
+      dstPath: dstPath,
+      language: lang,
+      slug: slug,
+      srcPath: path,
+      type: "file",
+      ...parsedDocument.data,
     };
-    docs.push(result);
+
+    addToSitemap(slug, properties);
+    docs.push(properties);
     if (verbose) {
       log(success("[OK] REBUILD FILE"));
       log("\r");
-      log(columnify(new Array(result)));
+      log(columnify(new Array(properties)));
       log("\r");
       log(warning("Watching files..."));
       log("\r");
