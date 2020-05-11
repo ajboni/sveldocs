@@ -96,12 +96,17 @@ log(`Crawling folder:  ${warning(config.SRC_DOCS_FOLDER)} for .md files...`);
 log("\r");
 
 function onCrawlReady() {
-  const sitemapFile = writeFile(JSON.stringify(sitemap), "./sitemap", ".json");
-  log(columnify(docs));
+  if (config.DEBUG_PRINT_CRAWLED_FILES) {
+    log(columnify(docs));
+  }
   log("\r");
   log(success("[OK] CRAWLING DONE, SITEMAP GENERATED"));
   log("\r");
-  console.log(JSON.stringify(sitemap, null, 2));
+
+  const sitemapFile = writeFile(JSON.stringify(sitemap), "./sitemap", ".json");
+  if (config.DEBUG_PRINT_GENERATED_SITEMAP) {
+    console.log(JSON.stringify(sitemap, null, 2));
+  }
   log("\r");
   log(warning("Watching files..."));
   log("\r");
