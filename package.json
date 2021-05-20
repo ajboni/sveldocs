@@ -33,7 +33,7 @@
     "markdown-it-emoji": "^1.4.0",
     "markdown-it-mark": "^3.0.0",
     "rollup-plugin-postcss": "^3.1.1",
-    "rollup-plugin-serve": "^1.0.1",
+    "rollup-plugin-serve": "^1.0.2",
     "rollup-plugin-svelte": "^5.2.1",
     "set-value": "^3.0.2",
     "svelte": "^3.22.2"
