@@ -35,7 +35,7 @@
     "rollup-plugin-postcss": "^3.1.1",
     "rollup-plugin-serve": "^1.0.2",
     "rollup-plugin-svelte": "^5.2.1",
-    "set-value": "^3.0.2",
+    "set-value": "^4.0.1",
     "svelte": "^3.22.2"
   },
   "description": ""
